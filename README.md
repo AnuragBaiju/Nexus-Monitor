@@ -13,7 +13,7 @@
 
 The system leverages a **Serverless Architecture** to ensure high availability, zero server management, and near-zero cost.
 
-![Architecture Diagram](https://my-health-dashboard-123.s3.us-east-1.amazonaws.com/screenshots/nexus-architecture.png)
+![Architecture Diagram]([https://my-health-dashboard-123.s3.us-east-1.amazonaws.com/screenshots/nexus-architecture.png](https://my-health-dashboard-123.s3.us-east-1.amazonaws.com/screenshots/nexus-architecture.png))
 
 1.  **EventBridge Scheduler:** Triggers the health check Lambda every 1 minute.
 2.  **AWS Lambda (Checker):** Python script that pings the target URL, calculates latency, and verifies HTTP status codes.
@@ -91,3 +91,4 @@ The system is "Event-Driven." If the target website goes down or returns an erro
 
 ## 📄 License
 This project is licensed under the MIT License - see the LICENSE file for details.
+

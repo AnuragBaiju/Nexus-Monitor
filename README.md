@@ -13,13 +13,43 @@
 
 The system leverages a **Serverless Architecture** to ensure high availability, zero server management, and near-zero cost.
 
-1.  **EventBridge Scheduler:** Triggers the health check Lambda every 1 minute.
-2.  **AWS Lambda (Checker):** Python script that pings the target URL, calculates latency, and verifies HTTP status codes.
-3.  **Amazon DynamoDB:** NoSQL database storing time-series data (Timestamp, Latency, Status) with TTL (Time-To-Live) enabled for auto-cleanup.
-4.  **Amazon SNS:** Publishes instant email alerts if the website returns a non-200 status code.
-5.  **AWS Lambda (Reader):** Fetches historical data from DynamoDB and formats it for the frontend.
-6.  **Amazon API Gateway:** Exposes the Reader Lambda via a secure REST API endpoint.
-7.  **Amazon S3 & CloudFront:** Hosts the static HTML/JS dashboard with global content delivery.
+graph TD
+    %% Define Styles
+    classDef aws fill:#FF9900,stroke:#232F3E,color:white,stroke-width:2px;
+    classDef external fill:#fff,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
+    
+    %% Actors and External Systems
+    User[User / Browser]
+    TargetWeb[Target Website]:::external
+    Email[Admin Email]:::external
+
+    %% Frontend Stack
+    subgraph Frontend_Hosting [Frontend Hosting]
+        S3[S3 Bucket<br/>(Static Website)]:::aws
+    end
+
+    %% Backend Stack
+    subgraph Serverless_Backend [Serverless Backend]
+        Scheduler[EventBridge<br/>(1-min Trigger)]:::aws
+        Checker[Lambda A<br/>(Checker)]:::aws
+        Reader[Lambda B<br/>(Reader)]:::aws
+        DB[(DynamoDB<br/>WebsiteHealth)]:::aws
+        API[API Gateway<br/>(HTTP API)]:::aws
+        SNS[SNS Topic<br/>(Alerts)]:::aws
+    end
+
+    %% Relationships - Monitoring Flow
+    Scheduler -->|Triggers| Checker
+    Checker -->|HTTP GET| TargetWeb
+    Checker -->|Save Metrics| DB
+    Checker -.->|If Error| SNS
+    SNS -.->|Send Email| Email
+
+    %% Relationships - Dashboard Flow
+    User -->|Visits| S3
+    User -->|Fetch Data via JS| API
+    API -->|Invoke| Reader
+    Reader -->|Query Last 24h| DB
 
 ---
 
@@ -87,3 +117,4 @@ The system leverages a **Serverless Architecture** to ensure high availability, 
 
 ## 📄 License
 This project is licensed under the MIT License - see the LICENSE file for details.
+

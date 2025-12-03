@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus | System Health</title>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* CORE AESTHETICS */
+        :root {
+            --primary: #6366f1;
+            --glass-bg: rgba(17, 25, 40, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.125);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            background-color: #0f172a;
+            color: var(--text-main);
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+                radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+        }
+
+        /* CARDS */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        /* HEADER */
+        .header { grid-column: span 4; display: flex; justify-content: space-between; align-items: center; }
+        .brand { font-size: 28px; font-weight: 700; background: linear-gradient(to right, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            border: none; padding: 12px 24px; color: white; border-radius: 12px; font-weight: 600; cursor: pointer;
+        }
+        .refresh-btn:hover { opacity: 0.9; }
+
+        /* METRICS */
+        .metric-card { grid-column: span 1; height: 120px; display: flex; flex-direction: column; justify-content: space-between; }
+        .metric-title { font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .metric-value { font-size: 32px; font-weight: 700; }
+        
+        .status-indicator { height: 12px; width: 12px; background-color: #10b981; border-radius: 50%; display: inline-block; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+
+        /* CHART SECTION */
+        .chart-wrapper { grid-column: span 4; position: relative; height: 450px; }
+        
+        /* TIME CONTROLS */
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .time-controls { display: flex; gap: 10px; background: rgba(255,255,255,0.05); padding: 5px; border-radius: 10px; }
+        .time-btn {
+            background: transparent; border: none; color: var(--text-muted); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s;
+        }
+        .time-btn:hover { color: white; background: rgba(255,255,255,0.1); }
+        .time-btn.active { background: var(--primary); color: white; }
+
+        /* LOADING */
+        #loading { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(15, 23, 42, 0.8); display: flex; justify-content: center; align-items: center; border-radius: 16px; z-index: 10; backdrop-filter: blur(5px); }
+        .loader { width: 48px; height: 48px; border: 5px solid #FFF; border-bottom-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        @media (max-width: 768px) { .dashboard-container { grid-template-columns: 1fr; } .metric-card, .header, .chart-wrapper { grid-column: span 1; } }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <div class="header">
+            <div class="brand"><i class="fa-solid fa-bolt"></i> NEXUS MONITOR</div>
+            <button class="refresh-btn" onclick="fetchData()">
+                <i class="fa-solid fa-sync" id="refreshIcon"></i> Refresh
+            </button>
+        </div>
+
+        <div class="glass-card metric-card">
+            <div class="metric-title">System Status</div>
+            <div class="metric-value" style="display:flex; align-items:center; gap:15px;">
+                <div id="statusDot" class="status-indicator"></div>
+                <span id="statusText" style="color:#10b981">Operational</span>
+            </div>
+        </div>
+
+        <div class="glass-card metric-card">
+            <div class="metric-title">Latest Latency</div>
+            <div class="metric-value" id="latencyValue">-- ms</div>
+        </div>
+
+        <div class="glass-card metric-card">
+            <div class="metric-title">24h Uptime</div>
+            <div class="metric-value">100%</div>
+        </div>
+
+        <div class="glass-card metric-card">
+            <div class="metric-title">Total Checks (24h)</div>
+            <div class="metric-value" id="totalChecks">0</div>
+        </div>
+
+        <div class="glass-card chart-wrapper">
+            <div class="chart-header">
+                <div class="metric-title">Latency History</div>
+                <div class="time-controls">
+                    <button class="time-btn active" onclick="updateView(10, this)">10 Mins</button>
+                    <button class="time-btn" onclick="updateView(60, this)">1 Hour</button>
+                    <button class="time-btn" onclick="updateView(1440, this)">24 Hours</button>
+                </div>
+            </div>
+            
+            <div id="loading"><div class="loader"></div></div>
+            <div style="height: 350px; width: 100%;">
+                <canvas id="myChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        //  CONFIGURATION
+        //  Replace with your API Gateway URL
+        // ==========================================
+        const API_URL = "YOUR_API_GATEWAY_URL_HERE"; 
+        // ==========================================
+
+        let myChart = null;
+        let globalData = []; 
+
+        async function fetchData() {
+            if (API_URL === "YOUR_API_GATEWAY_URL_HERE") {
+                alert("Please configure your API_URL in the index.html file.");
+                return;
+            }
+
+            const loader = document.getElementById('loading');
+            const refreshIcon = document.getElementById('refreshIcon');
+            loader.style.display = 'flex';
+            refreshIcon.classList.add('fa-spin');
+
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                
+                globalData = data.reverse(); 
+                updateMetrics(globalData);
+                renderChart(10);
+
+            } catch (error) {
+                console.error("Error:", error);
+                document.getElementById('statusText').innerText = "Error";
+                document.getElementById('statusText').style.color = "#ef4444";
+            } finally {
+                loader.style.display = 'none';
+                refreshIcon.classList.remove('fa-spin');
+            }
+        }
+
+        function updateMetrics(data) {
+            if (data.length === 0) return;
+
+            const latest = data[data.length - 1];
+            document.getElementById('totalChecks').innerText = data.length;
+            document.getElementById('latencyValue').innerText = parseFloat(latest.Latency).toFixed(3) + "s";
+
+            const statusText = document.getElementById('statusText');
+            if(latest.Status != "200") {
+                statusText.innerText = "Critical";
+                statusText.style.color = "#ef4444";
+                document.getElementById('statusDot').style.backgroundColor = "#ef4444";
+            }
+        }
+
+        function updateView(minutes, btn) {
+            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderChart(minutes);
+        }
+
+        function renderChart(limit) {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            const sliceSize = Math.min(limit, globalData.length);
+            const visibleData = globalData.slice(globalData.length - sliceSize);
+
+            const labels = visibleData.map(item => {
+                const date = new Date(item.Timestamp);
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            });
+            const values = visibleData.map(item => parseFloat(item.Latency));
+
+            if (myChart) myChart.destroy();
+
+            let gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(99, 102, 241, 0.5)');
+            gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Latency (s)',
+                        data: values,
+                        borderColor: '#818cf8',
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        pointRadius: limit > 60 ? 0 : 4,
+                        pointHoverRadius: 6,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af' } },
+                        x: { grid: { display: false }, ticks: { color: '#9ca3af', maxTicksLimit: 10 } }
+                    },
+                    animation: { duration: 0 }
+                }
+            });
+        }
+
+        fetchData();
+    </script>
+</body>
+</html>

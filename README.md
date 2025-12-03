@@ -1,3 +1,5 @@
+<div align="center">
+
 # ⚡️ Nexus Monitor: Serverless Website Health Tracker
 
 ![Status](https://img.shields.io/badge/status-active-success.svg)
@@ -5,91 +7,79 @@
 ![Python](https://img.shields.io/badge/Python-3.12-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-**Nexus Monitor** is a fully serverless, event-driven application that tracks website uptime and latency in real-time. Built 100% on AWS Cloud services, it features a modern glassmorphism dashboard, automated alerts, and minute-by-minute data visualization.
+A fully **serverless, event-driven website monitoring solution** that tracks uptime and latency in real-time. Built entirely on AWS Cloud services, Nexus Monitor features a modern glassmorphism dashboard, automated alerts, and minute-by-minute data visualization.
+
+[🌐 Live Demo](http://my-health-dashboard-123.s3-website-us-east-1.amazonaws.com/)
+
+</div>
 
 ---
 
-## 🏗 Architecture
+## 🏗 Architecture Overview
 
-The system leverages a **Serverless Architecture** to ensure high availability, zero server management, and near-zero cost.
+Nexus Monitor leverages a **serverless architecture** to achieve high availability, minimal cost, and zero server maintenance.
 
 ![Architecture Diagram](https://my-health-dashboard-123.s3.us-east-1.amazonaws.com/screenshots/nexus-architecture.jpg)
 
-1.  **EventBridge Scheduler:** Triggers the health check Lambda every 1 minute.
-2.  **AWS Lambda (Checker):** Python script that pings the target URL, calculates latency, and verifies HTTP status codes.
-3.  **Amazon DynamoDB:** NoSQL database storing time-series data (Timestamp, Latency, Status) with TTL (Time-To-Live) enabled for auto-cleanup.
-4.  **Amazon SNS:** Publishes instant email alerts if the website returns a non-200 status code.
-5.  **AWS Lambda (Reader):** Fetches historical data from DynamoDB and formats it for the frontend.
-6.  **Amazon API Gateway:** Exposes the Reader Lambda via a secure REST API endpoint.
-7.  **Amazon S3 & CloudFront:** Hosts the static HTML/JS dashboard with global content delivery.
+**Workflow:**
+1. **EventBridge Scheduler** triggers the health check Lambda every minute.  
+2. **Lambda (Checker):** Pings target URLs, measures latency, and checks HTTP status codes.  
+3. **DynamoDB:** Stores time-series data (Timestamp, Latency, Status) with TTL for auto-cleanup.  
+4. **SNS:** Sends instant email alerts if a website returns a non-200 status.  
+5. **Lambda (Reader):** Retrieves historical data from DynamoDB and formats it for the frontend.  
+6. **API Gateway:** Exposes the Reader Lambda via a secure REST API.  
+7. **S3 + CloudFront:** Hosts the responsive static dashboard globally.  
 
 ---
 
-## 📸 Dashboard & Features
+## 📊 Dashboard & Features
 
-### 1. Real-Time Monitoring (Operational)
-A responsive, glassmorphism UI built with vanilla HTML/CSS and Chart.js. It visualizes latency trends and allows toggling between 10-minute, 1-hour, and 24-hour views.
+### 1. Real-Time Monitoring
+* Responsive **glassmorphism UI** with vanilla HTML/CSS and Chart.js.  
+* Toggle between **10-minute, 1-hour, and 24-hour latency views**.  
 
 ![Operational Dashboard](https://my-health-dashboard-123.s3.us-east-1.amazonaws.com/screenshots/Screenshot+2025-12-03+at+15.41.15.png)
 
-### 2. Incident Response System
-The system is "Event-Driven." If the target website goes down or returns an error (e.g., 404, 500), the UI updates instantly to a **Critical State**, and the backend triggers an **SNS Alert**.
+### 2. Incident Response
+* Event-driven architecture updates the UI instantly if a site is down.  
+* **SNS notifications** trigger automated email alerts.  
 
-**Critical Dashboard View:**
+**Critical State Dashboard:**  
 ![Critical Dashboard](https://my-health-dashboard-123.s3.us-east-1.amazonaws.com/screenshots/Screenshot+2025-12-03+at+15.28.15.png)
 
-**Automated Email Notification:**
+**Example Email Alert:**  
 ![Email Alert](https://my-health-dashboard-123.s3.us-east-1.amazonaws.com/screenshots/Screenshot+2025-12-03+at+16.02.08.png)
 
 ---
 
 ## 🛠 Tech Stack
 
-* **Cloud Provider:** Amazon Web Services (AWS)
-* **Infrastructure:** Lambda, DynamoDB, API Gateway, EventBridge, SNS, S3
-* **Backend Code:** Python 3.12 (Boto3, Urllib3)
-* **Frontend:** HTML5, CSS3 (Glassmorphism UI), Chart.js
-* **Version Control:** Git & GitHub
+* **Cloud:** AWS (Lambda, DynamoDB, S3, API Gateway, EventBridge, SNS)  
+* **Backend:** Python 3.12 (Boto3, Urllib3)  
+* **Frontend:** HTML5, CSS3 (Glassmorphism), Chart.js  
+* **Version Control:** Git & GitHub  
 
 ---
 
-## 💻 How to Deploy
+## 💻 Deployment Guide
 
-### 1. Backend Setup (AWS)
-1.  **DynamoDB:** Create a table named `WebsiteHealth` with Partition Key: `UrlID` (String) and Sort Key: `Timestamp` (String).
-2.  **SNS Topic:** Create a Standard Topic named `WebsiteDownAlerts` and subscribe your email.
-3.  **IAM Role:** Create a role with permissions for `DynamoDBFullAccess` and `AmazonSNSFullAccess`.
+### Backend Setup
+1. **DynamoDB Table:** `WebsiteHealth`  
+   * Partition Key: `UrlID` (String)  
+   * Sort Key: `Timestamp` (String)  
+2. **SNS Topic:** `WebsiteDownAlerts` – subscribe your email.  
+3. **IAM Role:** Permissions for `DynamoDBFullAccess` & `AmazonSNSFullAccess`.  
 
-### 2. Lambda Functions
-* **Checker Function (`backend/checker.py`):**
-    * Set environment variables or hardcode your target URL and SNS ARN.
-    * Set EventBridge Scheduler to trigger this function every `rate(1 minute)`.
-* **Reader Function (`backend/reader.py`):**
-    * Deploy this function to read from DynamoDB.
-    * Connect it to **API Gateway** (HTTP API) with a `GET` route.
-    * Enable **CORS** (Access-Control-Allow-Origin: `*`).
+### Lambda Functions
+* **Checker (`backend/checker.py`):**  
+  - Set target URL and SNS ARN via environment variables.  
+  - Trigger every **1 minute** using EventBridge Scheduler.  
 
-### 3. Frontend Deployment
-1.  Open `index.html`.
-2.  Replace the placeholder API URL with your actual **API Gateway Invoke URL**:
-    ```javascript
-    const API_URL = "[https://your-api-id.execute-api.us-east-1.amazonaws.com](https://your-api-id.execute-api.us-east-1.amazonaws.com)";
-    ```
-3.  Create an **S3 Bucket** and enable **Static Website Hosting**.
-4.  Upload `index.html`.
-5.  Update the **Bucket Policy** to allow public read access (`s3:GetObject`).
+* **Reader (`backend/reader.py`):**  
+  - Fetches data from DynamoDB and exposes via **API Gateway (GET route)**.  
+  - Enable **CORS** for frontend access.  
 
----
-
-## 🧠 What I Learned
-* **Event-Driven Design:** How to decouple check logic (Lambda A) from data retrieval (Lambda B).
-* **NoSQL Modeling:** Designing a DynamoDB schema for efficient time-series querying.
-* **CORS & Security:** Configuring API Gateway to securely serve data to a static frontend.
-* **Cost Optimization:** Leveraging AWS Free Tier limits for 24/7 monitoring without incurring costs.
-
----
-
-## 📄 License
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-
+### Frontend Deployment
+1. Replace placeholder API URL in `index.html`:
+```javascript
+const API_URL = "https://your-api-id.execute-api.us-east-1.amazonaws.com";

@@ -13,43 +13,33 @@
 
 The system leverages a **Serverless Architecture** to ensure high availability, zero server management, and near-zero cost.
 
-graph TD
-    %% Define Styles
-    classDef aws fill:#FF9900,stroke:#232F3E,color:white,stroke-width:2px;
-    classDef external fill:#fff,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
-    
-    %% Actors and External Systems
-    User[User / Browser]
-    TargetWeb[Target Website]:::external
-    Email[Admin Email]:::external
+![Architecture Diagram](https://my-health-dashboard-123.s3.us-east-1.amazonaws.com/screenshots/nexus-architecture.png)
 
-    %% Frontend Stack
-    subgraph Frontend_Hosting [Frontend Hosting]
-        S3[S3 Bucket<br/>(Static Website)]:::aws
-    end
+1.  **EventBridge Scheduler:** Triggers the health check Lambda every 1 minute.
+2.  **AWS Lambda (Checker):** Python script that pings the target URL, calculates latency, and verifies HTTP status codes.
+3.  **Amazon DynamoDB:** NoSQL database storing time-series data (Timestamp, Latency, Status) with TTL (Time-To-Live) enabled for auto-cleanup.
+4.  **Amazon SNS:** Publishes instant email alerts if the website returns a non-200 status code.
+5.  **AWS Lambda (Reader):** Fetches historical data from DynamoDB and formats it for the frontend.
+6.  **Amazon API Gateway:** Exposes the Reader Lambda via a secure REST API endpoint.
+7.  **Amazon S3 & CloudFront:** Hosts the static HTML/JS dashboard with global content delivery.
 
-    %% Backend Stack
-    subgraph Serverless_Backend [Serverless Backend]
-        Scheduler[EventBridge<br/>(1-min Trigger)]:::aws
-        Checker[Lambda A<br/>(Checker)]:::aws
-        Reader[Lambda B<br/>(Reader)]:::aws
-        DB[(DynamoDB<br/>WebsiteHealth)]:::aws
-        API[API Gateway<br/>(HTTP API)]:::aws
-        SNS[SNS Topic<br/>(Alerts)]:::aws
-    end
+---
 
-    %% Relationships - Monitoring Flow
-    Scheduler -->|Triggers| Checker
-    Checker -->|HTTP GET| TargetWeb
-    Checker -->|Save Metrics| DB
-    Checker -.->|If Error| SNS
-    SNS -.->|Send Email| Email
+## 📸 Dashboard & Features
 
-    %% Relationships - Dashboard Flow
-    User -->|Visits| S3
-    User -->|Fetch Data via JS| API
-    API -->|Invoke| Reader
-    Reader -->|Query Last 24h| DB
+### 1. Real-Time Monitoring (Operational)
+A responsive, glassmorphism UI built with vanilla HTML/CSS and Chart.js. It visualizes latency trends and allows toggling between 10-minute, 1-hour, and 24-hour views.
+
+![Operational Dashboard](https://my-health-dashboard-123.s3.us-east-1.amazonaws.com/screenshots/Screenshot+2025-12-03+at+15.41.15.png)
+
+### 2. Incident Response System
+The system is "Event-Driven." If the target website goes down or returns an error (e.g., 404, 500), the UI updates instantly to a **Critical State**, and the backend triggers an **SNS Alert**.
+
+**Critical Dashboard View:**
+![Critical Dashboard](https://my-health-dashboard-123.s3.us-east-1.amazonaws.com/screenshots/Screenshot+2025-12-03+at+15.28.15.png)
+
+**Automated Email Notification:**
+![Email Alert](https://my-health-dashboard-123.s3.us-east-1.amazonaws.com/screenshots/Screenshot+2025-12-03+at+16.02.08.png)
 
 ---
 
@@ -60,16 +50,6 @@ graph TD
 * **Backend Code:** Python 3.12 (Boto3, Urllib3)
 * **Frontend:** HTML5, CSS3 (Glassmorphism UI), Chart.js
 * **Version Control:** Git & GitHub
-
----
-
-## 🚀 Features
-
-* ✅ **Real-Time Monitoring:** Checks website health every 60 seconds.
-* ✅ **Interactive Dashboard:** Visualizes latency trends over the last 10 minutes, 1 hour, or 24 hours.
-* ✅ **Instant Alerts:** Sends an email notification immediately if the site goes down.
-* ✅ **Data Persistence:** Stores historical performance data for analysis.
-* ✅ **Cost Efficient:** Optimized to run within the AWS Free Tier.
 
 ---
 
@@ -101,12 +81,6 @@ graph TD
 
 ---
 
-## 📸 Screenshots
-
-*(Add a screenshot of your dashboard here)*
-
----
-
 ## 🧠 What I Learned
 * **Event-Driven Design:** How to decouple check logic (Lambda A) from data retrieval (Lambda B).
 * **NoSQL Modeling:** Designing a DynamoDB schema for efficient time-series querying.
@@ -117,4 +91,3 @@ graph TD
 
 ## 📄 License
 This project is licensed under the MIT License - see the LICENSE file for details.
-
